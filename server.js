@@ -36,6 +36,9 @@ db.once('open', function callback () {
 
 mongoose.Promise = global.Promise;
 
+var bcrypt = require('bcryptjs');
+var salt = bcrypt.genSaltSync(10);
+
 var User = require('./models/user.js');
 var Post = require('./models/post.js');
 var Response = require('./models/response.js');
@@ -171,9 +174,10 @@ app.get('/signup', function(req, res) {
 
 //signup
 app.post('/signup', function(req, res) {
+	var hash = bcrypt.hashSync(req.body.password, salt);
 	User.update(
 		{ username: req.body.username },
-		{ password: req.body.password,
+		{ password: hash,
 		  email: req.body.email },
 		{ upsert: true },
 		function(err) {
@@ -199,7 +203,7 @@ app.get('/login', function(req, res) {
 app.post('/login', function(req, res) {
 	User.find(function(err, user) {
 		user = user.map(function(User) {
-			if (req.body.username == User.username && req.body.password == User.password) {
+			if (req.body.username == User.username && bcrypt.compareSync(req.body.password, User.password) == true) {
 				req.session.username = req.body.username;
 			}
 		});
